@@ -26,11 +26,13 @@ section .data
 	objetosSalta				times 20 dw			0
 	objetosTierra				times 20 dw			0
 
-	ultimaPosicionPosadas		dw					0
-	ultimaPosicionSalta			dw					0
-	ultimaPosicionTierra		dw					0
+	cantidadPosadas				db					0
+	cantidadSalta				db					0
+	cantidadTierra				db					0
 
 	
+numeroDebugger				db					'%lli',10,0 ;DEBUG
+debugger				db					'a ver: %lli',10,0 ;DEBUG
 guardandoPosadas	   	db  				'Guardando objeto en Posadas...',10,0 ;DEBUG
 guardandoSalta	   	db  				'Guardando objeto en Salta...',10,0 ;DEBUG
 guardandoTierra	   	db  				'Guardando objeto en Tierra...',10,0 ;DEBUG
@@ -49,6 +51,27 @@ main:
 	call 	ingresarCantidadDeObjetos
 
 	call 	ingresarObjetos
+
+mov 	rcx,numeroDebugger ;DEBUG
+mov 	rdx,0
+mov 	dl,byte[cantidadPosadas]
+sub 	rsp,32
+call 	printf
+add 	rsp,32
+
+mov 	rcx,numeroDebugger ;DEBUG
+mov 	rdx,0
+mov 	dl,byte[cantidadSalta]
+sub 	rsp,32
+call 	printf
+add 	rsp,32
+
+mov 	rcx,numeroDebugger ;DEBUG
+mov 	rdx,0
+mov 	dl,byte[cantidadTierra]
+sub 	rsp,32
+call 	printf
+add 	rsp,32
 
 ret
 
@@ -282,6 +305,9 @@ ret
 ;   Guarda el objeto ingresado por el usuario
 ;------------------------------------------------------
 guardarObjeto:
+	mov 	rax,16
+	mov 	rbx,0
+
 	cmp		word[destinoIngresadoNumero],1
 	je		guardarPosadas
 
@@ -292,24 +318,30 @@ guardarObjeto:
 	je		guardarTierra
 
 guardarPosadas:
-mov 	rcx,guardandoPosadas ;debug
-sub		rsp,32
-call	printf
-add		rsp,32
+	mov		bl,byte[cantidadPosadas]
+	imul	rbx,rax
+	mov		rax,0
+	mov		ax,word[objetoIngresadoPeso]
+	mov		word[objetosPosadas+rbx],ax
+	inc		byte[cantidadPosadas]
 	jmp 	finGuardarObjeto
 
 guardarSalta:
-mov 	rcx,guardandoSalta ;debug
-sub		rsp,32
-call	printf
-add		rsp,32
+	mov		bl,byte[cantidadSalta]
+	imul	rbx,rax
+	mov		rax,0
+	mov		ax,word[objetoIngresadoPeso]
+	mov		word[objetosSalta+rbx],ax
+	inc		byte[cantidadSalta]
 	jmp 	finGuardarObjeto
 
 guardarTierra:
-mov 	rcx,guardandoTierra ;debug
-sub		rsp,32
-call	printf
-add		rsp,32
+	mov		bl,byte[cantidadTierra]
+	imul	rbx,rax
+	mov		rax,0
+	mov		ax,word[objetoIngresadoPeso]
+	mov		word[objetosTierra+rbx],ax
+	inc		byte[cantidadTierra]
 
 finGuardarObjeto:
 ret

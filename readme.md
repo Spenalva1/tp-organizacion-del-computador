@@ -29,7 +29,7 @@ Desarrollar un algoritmo que proporcione una forma de acomodar los paquetes de f
 objetos de distinto destino en un mismo paquete y cumpliendo las restricciones de peso. Se sugiere
 tener una salida como la siguiente:
 
-- Destinoi – Objeto 1 (P 1 ) + Objeto 2 (P 2 )+ ..... + Objeton (Pn)
-- Destinoi – Objeto 1 (P 1 ) + Objeto 2 (P 2 )+ ..... + Objeton (Pn)
-- Destinoi – Objeto 1 (P 1 ) + Objeto 2 (P 2 )+ ..... + Objeton (Pn)
+- Destinoi – Objeto1 (P1) + Objeto2 (P2) + ..... + Objeton (Pn)
+- Destinoi – Objeto1 (P1) + Objeto2 (P2) + ..... + Objeton (Pn)
+- Destinoi – Objeto1 (P1) + Objeto2 (P2) + ..... + Objeton (Pn)
 ```
