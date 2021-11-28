@@ -13,6 +13,10 @@ section .data
   	mensajeFormatoNoValido	   	db  				'Formato del objeto no valido',10,0
   	mensajePesoNoValido	   		db  				'El peso ingresado no es valido',10,0
   	mensajeDestinoNoValido	   	db  				'El destino ingresado no es valido',10,0
+  	mensajeSeparador		   	db  				'==================================================',10,0
+  	mensajeGuion			   	db  				' - ',0
+  	mensajeSuma			   		db  				' + ',0
+  	mensajeSaltodeLinea			db  				'',10,0
 
 	numeroFormato				db					'%hi',0
 	objetoIngresadoFormato		db					'%hi %c',0
@@ -22,16 +26,24 @@ section .data
 								db					'Salta           ',0
 								db					'Tierra del Fuego',0
 
-	objetosPosadas				times 20 dw			0
-	objetosSalta				times 20 dw			0
-	objetosTierra				times 20 dw			0
+	destinoNumero				db					0
 
-	cantidadPosadas				db					0
-	cantidadSalta				db					0
-	cantidadTierra				db					0
+	objetos						times 0  db			''
+		objetosPosadas			times 20 dw			0		; BORRAR SI NO SE USA
+		objetosSalta			times 20 dw			0		; BORRAR SI NO SE USA
+		objetosTierra			times 20 dw			0		; BORRAR SI NO SE USA
+
+	cantidades					times 0  db			''
+		cantidadPosadas			times 1  db			0
+		cantidadSalta			times 1  db			0
+		cantidadTierra			times 1  db			0
+
+	objetoAuxDesplazamiento		dw					0
+	objetoAux					dw					0
+	contadorDestino				db					0
 
 	
-numeroDebugger				db					'%lli',10,0 ;DEBUG
+numeroDebugger				db					10,'a ver... %lli',10,0 ;DEBUG
 debugger				db					'a ver: %lli',10,0 ;DEBUG
 guardandoPosadas	   	db  				'Guardando objeto en Posadas...',10,0 ;DEBUG
 guardandoSalta	   	db  				'Guardando objeto en Salta...',10,0 ;DEBUG
@@ -45,6 +57,10 @@ section .bss
 	datoValido					resb	1
 	objetoIngresadoPeso			resw	1
 	objetoIngresadoDestino		resb	1
+	direccionInicial			resq	1
+	direccionFinal				resq	1
+	cantidadActual				resb	1
+	sumaPaquete					resw	1
 
 section .text
 main:
@@ -52,26 +68,21 @@ main:
 
 	call 	ingresarObjetos
 
-mov 	rcx,numeroDebugger ;DEBUG
-mov 	rdx,0
-mov 	dl,byte[cantidadPosadas]
-sub 	rsp,32
-call 	printf
-add 	rsp,32
+	call	mostrarPaquetes
 
-mov 	rcx,numeroDebugger ;DEBUG
-mov 	rdx,0
-mov 	dl,byte[cantidadSalta]
-sub 	rsp,32
-call 	printf
-add 	rsp,32
-
-mov 	rcx,numeroDebugger ;DEBUG
-mov 	rdx,0
-mov 	dl,byte[cantidadTierra]
-sub 	rsp,32
-call 	printf
-add 	rsp,32
+; mov 	rbx,0
+; siguiente:
+; cmp		word[objetosTierra+rbx],0
+; je		fin
+; mov 	rcx,numeroDebugger
+; mov 	rdx,0
+; mov 	dx,word[objetosTierra+rbx]
+; sub 	rsp,32
+; call 	printf
+; add 	rsp,32
+; add		rbx,2
+; jmp		siguiente
+; fin:
 
 ret
 
@@ -305,43 +316,183 @@ ret
 ;   Guarda el objeto ingresado por el usuario
 ;------------------------------------------------------
 guardarObjeto:
-	mov 	rax,16
+	mov		rcx,0
+	dec		word[destinoIngresadoNumero]
+	mov 	rax,40									; 20*2=40
 	mov 	rbx,0
+	mov 	bx,word[destinoIngresadoNumero]
+	imul	rbx,rax										; ya queda rbx con el desplazamiento al vector correspondiente
 
-	cmp		word[destinoIngresadoNumero],1
-	je		guardarPosadas
+siguienteObjeto:
+	mov		cx,word[objetos+rbx]
+	cmp		cx,word[objetoIngresadoPeso]
+	jl		insertarObjeto
+	add		rbx,2
+	jmp 	siguienteObjeto
 
-	cmp		word[destinoIngresadoNumero],2
-	je		guardarSalta
-
-	cmp		word[destinoIngresadoNumero],3
-	je		guardarTierra
-
-guardarPosadas:
-	mov		bl,byte[cantidadPosadas]
-	imul	rbx,rax
+insertarObjeto:
 	mov		rax,0
-	mov		ax,word[objetoIngresadoPeso]
-	mov		word[objetosPosadas+rbx],ax
-	inc		byte[cantidadPosadas]
-	jmp 	finGuardarObjeto
+	; guardo el objeto que será pisado
+	mov		ax,word[objetos+rbx]
+	mov		word[objetoAuxDesplazamiento],ax
 
-guardarSalta:
-	mov		bl,byte[cantidadSalta]
-	imul	rbx,rax
-	mov		rax,0
+	; guardo el nuevo objeto en la posicion correspondiente
 	mov		ax,word[objetoIngresadoPeso]
-	mov		word[objetosSalta+rbx],ax
-	inc		byte[cantidadSalta]
-	jmp 	finGuardarObjeto
+	mov		word[objetos+rbx],ax
 
-guardarTierra:
-	mov		bl,byte[cantidadTierra]
-	imul	rbx,rax
-	mov		rax,0
-	mov		ax,word[objetoIngresadoPeso]
-	mov		word[objetosTierra+rbx],ax
-	inc		byte[cantidadTierra]
+	; incremento la cantidad del destino correspondiente
+	mov 	cx,word[destinoIngresadoNumero]
+	inc		byte[cantidades+rcx]
 
+	cmp		byte[cantidades+rcx],20
+	jge		finGuardarObjeto
+
+	cmp		word[objetoAuxDesplazamiento],0
+	je		finGuardarObjeto
+
+	add		rbx,2
+	call 	desplazarObjetos
 finGuardarObjeto:
+ret
+
+;------------------------------------------------------
+;   desplaza una posicion los objetos de "objetos" desde el desplazamiento indicado por rbx hasta encontrar un 0
+;------------------------------------------------------
+desplazarObjetos:
+	mov		ax,word[objetos+rbx]
+	mov		word[objetoAux],ax
+
+	mov		ax,word[objetoAuxDesplazamiento]
+	mov		word[objetos+rbx],ax
+
+	mov		ax,word[objetoAux]
+	mov		word[objetoAuxDesplazamiento],ax
+
+	add		rbx,2
+
+	cmp		byte[objetoAuxDesplazamiento],0
+	jg		desplazarObjetos
+ret
+
+;------------------------------------------------------
+;   Lista en pantalla los paquetes de todos los destinos
+;------------------------------------------------------
+mostrarPaquetes:
+siguienteDesitno:
+	mov		rcx,0
+	mov		cl,byte[contadorDestino]
+	mov		rbx,0
+	mov		bl,byte[cantidades+rcx]
+	cmp		rbx,0
+	jle		sinObjetos
+
+	mov		byte[cantidadActual],bl
+	call 	mostrarPaquetesDestino
+
+sinObjetos:
+	inc		byte[contadorDestino]
+	cmp		byte[contadorDestino],2
+	jle		siguienteDesitno
+
+ret
+
+
+;------------------------------------------------------
+;   Lista en pantalla los paquetes del destino correspondiente al numero contadorDestino
+;------------------------------------------------------
+mostrarPaquetesDestino:
+	mov		rcx,0
+	mov		cl,byte[contadorDestino]
+	mov		rax,objetos
+	imul	rbx,rcx,40									; 20*2=40
+	add		rax,rbx
+	mov		[direccionInicial],rax
+	
+	mov		rbx,0
+	mov		bl,byte[cantidadActual]
+	dec		rbx
+	imul	rbx,2
+	add		rax,rbx
+	mov		[direccionFinal],rax
+
+siguientePaquete:
+	mov		word[sumaPaquete],0
+
+	mov		rcx,0
+	mov		cl,byte[contadorDestino]
+	imul	rcx,17
+	add		rcx,destinosLista
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
+	mov 	rcx,mensajeGuion
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
+	mov 	rcx,numeroFormato
+	mov 	rdx,[direccionInicial]
+	mov		rbx,rdx
+	mov		rdx,0
+	mov		dx,word[rbx]
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
+	mov		rdx,0
+	mov		dx,word[rbx]
+	add		word[sumaPaquete],dx
+	add		qword[direccionInicial],2
+	dec		byte[cantidadActual]
+	
+	cmp		byte[cantidadActual],0
+	jle		finDestino
+
+siguienteObjetoPaquete:
+	mov		rax,0
+	mov		ax,word[sumaPaquete]
+	mov 	rbx,[direccionFinal]
+	mov		dx,word[rbx]
+	mov		word[objetoAux],dx
+	add		ax,word[objetoAux]
+
+	cmp		ax,15
+	jg		finPaquete
+
+	mov		word[sumaPaquete],ax
+
+	mov 	rcx,mensajeSuma
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+	
+	mov 	rcx,numeroFormato
+	mov 	rdx,0
+	mov		dx,word[objetoAux]
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
+	sub		qword[direccionFinal],2
+	dec		byte[cantidadActual]
+	
+	cmp		byte[cantidadActual],0
+	jle		finDestino
+
+	jmp		siguienteObjetoPaquete
+	
+finPaquete:
+	mov 	rcx,mensajeSaltodeLinea
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
+	jmp		siguientePaquete
+
+finDestino:
+	mov 	rcx,mensajeSaltodeLinea
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
 ret
