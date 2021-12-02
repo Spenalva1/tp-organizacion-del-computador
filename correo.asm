@@ -28,26 +28,17 @@ section .data
 
 	destinoNumero				db					0
 
-	objetos						times 0  db			''
-		objetosPosadas			times 20 dw			0		; BORRAR SI NO SE USA
-		objetosSalta			times 20 dw			0		; BORRAR SI NO SE USA
-		objetosTierra			times 20 dw			0		; BORRAR SI NO SE USA
+	objetos						times 60 dw			0	; 20 objetos por cada destino 20 x 3 = 60
+														; representa una matriz donde cada fila es un destino y cada columna un objeto
+														; Fila 1 -> Posadas
+														; Fila 2 -> Salta
+														; Fila 3 -> Tierra del Fuego
 
-	cantidades					times 0  db			''
-		cantidadPosadas			times 1  db			0
-		cantidadSalta			times 1  db			0
-		cantidadTierra			times 1  db			0
+	cantidades					times 3  db			0	; 1 cantidad por cada destino 1 x 3 = 3
 
 	objetoAuxDesplazamiento		dw					0
 	objetoAux					dw					0
 	contadorDestino				db					0
-
-	
-numeroDebugger				db					10,'a ver... %lli',10,0 ;DEBUG
-debugger				db					'a ver: %lli',10,0 ;DEBUG
-guardandoPosadas	   	db  				'Guardando objeto en Posadas...',10,0 ;DEBUG
-guardandoSalta	   	db  				'Guardando objeto en Salta...',10,0 ;DEBUG
-guardandoTierra	   	db  				'Guardando objeto en Tierra...',10,0 ;DEBUG
 
 section .bss
 	cantidadObjetosIngresado	resb	10
@@ -69,21 +60,6 @@ main:
 	call 	ingresarObjetos
 
 	call	mostrarPaquetes
-
-; mov 	rbx,0
-; siguiente:
-; cmp		word[objetosTierra+rbx],0
-; je		fin
-; mov 	rcx,numeroDebugger
-; mov 	rdx,0
-; mov 	dx,word[objetosTierra+rbx]
-; sub 	rsp,32
-; call 	printf
-; add 	rsp,32
-; add		rbx,2
-; jmp		siguiente
-; fin:
-
 ret
 
 ;------------------------------------------------------
@@ -318,17 +294,19 @@ ret
 guardarObjeto:
 	mov		rcx,0
 	dec		word[destinoIngresadoNumero]
-	mov 	rax,40									; 20*2=40
+	mov 	rax,40										; 20*2=40 		20 por la cantidad de columnas de cada fila y 2 por el tamaño de cada columna
 	mov 	rbx,0
 	mov 	bx,word[destinoIngresadoNumero]
-	imul	rbx,rax										; ya queda rbx con el desplazamiento al vector correspondiente
+	imul	rbx,rax										; ya queda rbx con el desplazamiento a la correspondiente al destino del objeto ingresado
 
 siguienteObjeto:
 	mov		cx,word[objetos+rbx]
 	cmp		cx,word[objetoIngresadoPeso]
-	jl		insertarObjeto
+	jl		insertarObjeto								; si el objeto apuntado por rbx es de menor peso que el objeto ingresado, 
+														; significa que esa posicion es la correspondiente para el objeto ingresado
 	add		rbx,2
-	jmp 	siguienteObjeto
+	jmp 	siguienteObjeto								; si el objeto apuntado por rbx es de mayor peso que el objeto ingresado,
+														; desplazo rbx al siguiente objeto del destino 
 
 insertarObjeto:
 	mov		rax,0
@@ -344,12 +322,17 @@ insertarObjeto:
 	mov 	cx,word[destinoIngresadoNumero]
 	inc		byte[cantidades+rcx]
 
+	; si la cantidad correspondiente es 20 significa que ya se ingresó el maximo de objetos
 	cmp		byte[cantidades+rcx],20
 	jge		finGuardarObjeto
 
+	; si el objeto que quedó en objetoAuxDesplazamiento es de peso 0, significa que el nuevo objeto quedó en la ultima posicion 
+	; de la fila por lo que no hay que realizar un desplazamiento
 	cmp		word[objetoAuxDesplazamiento],0
 	je		finGuardarObjeto
 
+	; si el objeto que quedó en el objetoAuxDesplazamiento es de peso mayor a 0, significa que el nuevo objeto ocupó la posicion
+	; de otro objeto por lo que, a partir de este ultimo, hay que correr a todos los objetos una posicion
 	add		rbx,2
 	call 	desplazarObjetos
 finGuardarObjeto:
@@ -359,17 +342,22 @@ ret
 ;   desplaza una posicion los objetos de "objetos" desde el desplazamiento indicado por rbx hasta encontrar un 0
 ;------------------------------------------------------
 desplazarObjetos:
+	; guardo el objeto que será pisado
 	mov		ax,word[objetos+rbx]
 	mov		word[objetoAux],ax
 
+	; guardo el objeto de objetoAuxDesplazamiento en su nueva posicion
 	mov		ax,word[objetoAuxDesplazamiento]
 	mov		word[objetos+rbx],ax
 
+	; guardo el objeto que iba a ser pisado en objetoAuxDesplazamiento para desplazarlo también
 	mov		ax,word[objetoAux]
 	mov		word[objetoAuxDesplazamiento],ax
 
+	; avanzo el puntero rbx una posición
 	add		rbx,2
 
+	; desplazo cada objeto una posicion hasta tener un cero en objetoAuxDesplazamiento
 	cmp		byte[objetoAuxDesplazamiento],0
 	jg		desplazarObjetos
 ret
@@ -404,16 +392,18 @@ mostrarPaquetesDestino:
 	mov		rcx,0
 	mov		cl,byte[contadorDestino]
 	mov		rax,objetos
-	imul	rbx,rcx,40									; 20*2=40
-	add		rax,rbx
-	mov		[direccionInicial],rax
+	imul	rbx,rcx,40									; 20*2=40 	20 por la cantidad de columnas de cada fila y 2 por el tamaño de cada columna
+	add		rax,rbx										
+	mov		[direccionInicial],rax						; ya queda en direccionInicial la direccion a la fila correspondiente al destino que actualmente se esta
+														; preparando
 	
 	mov		rbx,0
 	mov		bl,byte[cantidadActual]
 	dec		rbx
 	imul	rbx,2
 	add		rax,rbx
-	mov		[direccionFinal],rax
+	mov		[direccionFinal],rax						; ya queda en direccionFinal la direccion al ultimo objeto de fila correspondiente al destino que actualmente 
+														; se esta preparando
 
 siguientePaquete:
 	mov		word[sumaPaquete],0
@@ -421,7 +411,7 @@ siguientePaquete:
 	mov		rcx,0
 	mov		cl,byte[contadorDestino]
 	imul	rcx,17
-	add		rcx,destinosLista
+	add		rcx,destinosLista							; imprimo en pantalla el destino del proximo paquete
 	sub 	rsp,32
 	call 	printf
 	add 	rsp,32
@@ -432,7 +422,7 @@ siguientePaquete:
 	add 	rsp,32
 
 	mov 	rcx,numeroFormato
-	mov 	rdx,[direccionInicial]
+	mov 	rdx,[direccionInicial]						; Se mete en el paquete el primer objeto de la fila que todavía no fue incluido en ningún paquete
 	mov		rbx,rdx
 	mov		rdx,0
 	mov		dx,word[rbx]
@@ -442,25 +432,27 @@ siguientePaquete:
 
 	mov		rdx,0
 	mov		dx,word[rbx]
-	add		word[sumaPaquete],dx
+	add		word[sumaPaquete],dx						; se actualiza sumaPaquete con el peso actual del paquete
 	add		qword[direccionInicial],2
-	dec		byte[cantidadActual]
+	dec		byte[cantidadActual]						; como ya se metió un objeto en un paquete, la cantidad correspondiente disminuye
 	
 	cmp		byte[cantidadActual],0
 	jle		finDestino
 
-siguienteObjetoPaquete:
+siguienteObjetoPaquete:									; si ya se metió en el paquete el primer objeto de la fila y qtodavía quedan objetos, 
+														; se recorre la lista desde el ultimo objeto ingresandolos en el paquete hasta llegar a 
+														; la maxima capacidad o haber metido todos los objetos
 	mov		rax,0
 	mov		ax,word[sumaPaquete]
 	mov 	rbx,[direccionFinal]
 	mov		dx,word[rbx]
-	mov		word[objetoAux],dx
+	mov		word[objetoAux],dx							; se obtiene el ultimo paquete de la fila que todavía no fue incluido en ningún paquete
 	add		ax,word[objetoAux]
 
-	cmp		ax,15
-	jg		finPaquete
+	cmp		ax,15										; se comprueba que no se pase la capacidad máxima del paquete
+	jg		finPaquete									; si se paso la capacidad máxima, se termina el paquete y se avanza al próximo
 
-	mov		word[sumaPaquete],ax
+	mov		word[sumaPaquete],ax						; se actualiza sumaPaquete con el peso actual del paquete
 
 	mov 	rcx,mensajeSuma
 	sub 	rsp,32
@@ -474,8 +466,9 @@ siguienteObjetoPaquete:
 	call 	printf
 	add 	rsp,32
 
-	sub		qword[direccionFinal],2
-	dec		byte[cantidadActual]
+	sub		qword[direccionFinal],2						; Se le resta el tamaño de una columna para que direccionFinal siempre apunte al ultimo objeto de la fila que
+														; que todavía no fue incluido en ningún paquete
+	dec		byte[cantidadActual]						; como ya se metió un objeto en un paquete, la cantidad correspondiente disminuye
 	
 	cmp		byte[cantidadActual],0
 	jle		finDestino
