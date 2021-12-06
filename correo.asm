@@ -14,6 +14,7 @@ section .data
   	mensajePesoNoValido	   		db  				'El peso ingresado no es valido',10,0
   	mensajeDestinoNoValido	   	db  				'El destino ingresado no es valido',10,0
   	mensajeSeparador		   	db  				'==================================================',10,0
+  	mensajeListadoPaquetes	   	db  				'A continuacion se listan los paquetes:',10,0
   	mensajeGuion			   	db  				' - ',0
   	mensajeSuma			   		db  				' + ',0
   	mensajeSaltodeLinea			db  				'',10,0
@@ -366,6 +367,16 @@ ret
 ;   Lista en pantalla los paquetes de todos los destinos
 ;------------------------------------------------------
 mostrarPaquetes:
+	mov 	rcx,mensajeSeparador
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
+	mov 	rcx,mensajeListadoPaquetes
+	sub 	rsp,32
+	call 	printf
+	add 	rsp,32
+
 siguienteDesitno:
 	mov		rcx,0
 	mov		cl,byte[contadorDestino]
